@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image to Raw BGR Converter</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .upload-area:hover {
+            background: #f8f9ff;
+            border-color: #764ba2;
+        }
+
+        .upload-area.dragover {
+            background: #f0f0ff;
+            border-color: #764ba2;
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: transform 0.2s ease;
+            margin: 10px 5px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .preview-section {
+            margin-top: 30px;
+            display: none;
+        }
+
+        .preview-section.active {
+            display: block;
+        }
+
+        .preview-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .info-card {
+            background: #f8f9ff;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .info-label {
+            color: #666;
+            font-size: 12px;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            color: #333;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .button-group {
+            text-align: center;
+        }
+
+        .format-options {
+            background: #f8f9ff;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .format-options h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .option-group {
+            margin-bottom: 15px;
+        }
+
+        .option-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #666;
+            font-weight: 600;
+        }
+
+        select, input[type="checkbox"] {
+            margin-right: 5px;
+        }
+
+        .checkbox-label {
+            display: inline-flex;
+            align-items: center;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🖼️ Image to Raw BGR Converter</h1>
+        <p class="subtitle">Convert PNG, JPEG, WebP, BMP, and other image formats to raw BGR pixel data</p>
+
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📁</div>
+            <h3>Click to upload or drag and drop</h3>
+            <p>Supports: PNG, JPEG, WebP, BMP, GIF, and more</p>
+            <input type="file" id="fileInput" accept="image/*">
+        </div>
+
+        <div class="preview-section" id="previewSection">
+            <div class="preview-container">
+                <img id="previewImage" class="preview-image" alt="Preview">
+            </div>
+
+            <div class="info-grid">
+                <div class="info-card">
+                    <div class="info-label">Width</div>
+                    <div class="info-value" id="imageWidth">-</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-label">Height</div>
+                    <div class="info-value" id="imageHeight">-</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-label">File Size</div>
+                    <div class="info-value" id="fileSize">-</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-label">BGR Data Size</div>
+                    <div class="info-value" id="bgrSize">-</div>
+                </div>
+            </div>
+
+            <div class="format-options">
+                <h3>Export Options</h3>
+                <div class="option-group">
+                    <label>Channel Order:</label>
+                    <select id="channelOrder">
+                        <option value="bgr">BGR (Blue, Green, Red)</option>
+                        <option value="rgb">RGB (Red, Green, Blue)</option>
+                        <option value="bgra">BGRA (Blue, Green, Red, Alpha)</option>
+                        <option value="rgba">RGBA (Red, Green, Blue, Alpha)</option>
+                    </select>
+                </div>
+                <div class="option-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="includeMetadata">
+                        Include metadata header (width, height, format)
+                    </label>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button class="btn" id="downloadBtn">📥 Download Raw Data</button>
+                <button class="btn" id="newImageBtn">🔄 Convert Another Image</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const previewSection = document.getElementById('previewSection');
+        const previewImage = document.getElementById('previewImage');
+        const imageWidth = document.getElementById('imageWidth');
+        const imageHeight = document.getElementById('imageHeight');
+        const fileSize = document.getElementById('fileSize');
+        const bgrSize = document.getElementById('bgrSize');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const newImageBtn = document.getElementById('newImageBtn');
+        const channelOrder = document.getElementById('channelOrder');
+        const includeMetadata = document.getElementById('includeMetadata');
+
+        let currentImageData = null;
+        let currentFileName = '';
+
+        // Upload area click
+        uploadArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        // File input change
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        });
+
+        // Drag and drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                handleFile(file);
+            }
+        });
+
+        // Handle file
+        function handleFile(file) {
+            currentFileName = file.name.split('.')[0];
+            const reader = new FileReader();
+
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    processImage(img, file);
+                };
+                img.src = e.target.result;
+                previewImage.src = e.target.result;
+            };
+
+            reader.readAsDataURL(file);
+            
+            // Update file size
+            fileSize.textContent = formatBytes(file.size);
+        }
+
+        // Process image
+        function processImage(img, file) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = img.width;
+            canvas.height = img.height;
+            
+            ctx.drawImage(img, 0, 0);
+            
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            currentImageData = imageData;
+            
+            // Update info
+            imageWidth.textContent = img.width + 'px';
+            imageHeight.textContent = img.height + 'px';
+            updateBGRSize();
+            
+            // Show preview section
+            previewSection.classList.add('active');
+        }
+
+        // Update BGR size based on selected format
+        function updateBGRSize() {
+            if (!currentImageData) return;
+            
+            const format = channelOrder.value;
+            const channelsPerPixel = format.length;
+            const totalPixels = currentImageData.width * currentImageData.height;
+            const dataSize = totalPixels * channelsPerPixel;
+            
+            let metadataSize = 0;
+            if (includeMetadata.checked) {
+                metadataSize = 12; // 3 x 4 bytes (width, height, format)
+            }
+            
+            bgrSize.textContent = formatBytes(dataSize + metadataSize);
+        }
+
+        // Listen for option changes
+        channelOrder.addEventListener('change', updateBGRSize);
+        includeMetadata.addEventListener('change', updateBGRSize);
+
+        // Convert RGBA to selected format
+        function convertPixelData(imageData, format) {
+            const pixels = imageData.data;
+            const width = imageData.width;
+            const height = imageData.height;
+            const totalPixels = width * height;
+            const channelsPerPixel = format.length;
+            
+            const result = new Uint8Array(totalPixels * channelsPerPixel);
+            
+            for (let i = 0; i < totalPixels; i++) {
+                const rgbaIndex = i * 4;
+                const resultIndex = i * channelsPerPixel;
+                
+                const r = pixels[rgbaIndex];
+                const g = pixels[rgbaIndex + 1];
+                const b = pixels[rgbaIndex + 2];
+                const a = pixels[rgbaIndex + 3];
+                
+                switch(format) {
+                    case 'bgr':
+                        result[resultIndex] = b;
+                        result[resultIndex + 1] = g;
+                        result[resultIndex + 2] = r;
+                        break;
+                    case 'rgb':
+                        result[resultIndex] = r;
+                        result[resultIndex + 1] = g;
+                        result[resultIndex + 2] = b;
+                        break;
+                    case 'bgra':
+                        result[resultIndex] = b;
+                        result[resultIndex + 1] = g;
+                        result[resultIndex + 2] = r;
+                        result[resultIndex + 3] = a;
+                        break;
+                    case 'rgba':
+                        result[resultIndex] = r;
+                        result[resultIndex + 1] = g;
+                        result[resultIndex + 2] = b;
+                        result[resultIndex + 3] = a;
+                        break;
+                }
+            }
+            
+            return result;
+        }
+
+        // Download button
+        downloadBtn.addEventListener('click', () => {
+            if (!currentImageData) return;
+            
+            const format = channelOrder.value;
+            const pixelData = convertPixelData(currentImageData, format);
+            
+            let finalData;
+            
+            if (includeMetadata.checked) {
+                // Create metadata header (12 bytes)
+                const header = new Uint8Array(12);
+                const headerView = new DataView(header.buffer);
+                
+                // Write width (4 bytes, little-endian)
+                headerView.setUint32(0, currentImageData.width, true);
+                // Write height (4 bytes, little-endian)
+                headerView.setUint32(4, currentImageData.height, true);
+                // Write format code (4 bytes)
+                const formatCodes = { 'bgr': 3, 'rgb': 4, 'bgra': 1, 'rgba': 2 };
+                headerView.setUint32(8, formatCodes[format], true);
+                
+                // Combine header and pixel data
+                finalData = new Uint8Array(header.length + pixelData.length);
+                finalData.set(header, 0);
+                finalData.set(pixelData, header.length);
+            } else {
+                finalData = pixelData;
+            }
+            
+            // Create blob and download
+            const blob = new Blob([finalData], { type: 'application/octet-stream' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${currentFileName}_${format}${includeMetadata.checked ? '_meta' : ''}.raw`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // New image button
+        newImageBtn.addEventListener('click', () => {
+            fileInput.value = '';
+            previewSection.classList.remove('active');
+            currentImageData = null;
+            currentFileName = '';
+        });
+
+        // Format bytes
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+    </script>
+</body>
+</html>
