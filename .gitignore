@@ -12,3 +12,5 @@ Thumbs.db
 *.raw
 #test_images/
 ./__pycache__/
+
+*.pyc
