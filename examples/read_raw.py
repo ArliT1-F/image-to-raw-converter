@@ -37,7 +37,8 @@ def read_raw_with_metadata(filename):
         
         # Read pixel data
         expected_size = width * height * channels
-        pixel_data = np.fromfile(f, dtype=np.uint8, count=expected_size)
+        pixel_bytes = f.read(expected_size)
+        pixel_data = np.frombuffer(pixel_bytes, dtype=np.uint8)
         
         if len(pixel_data) != expected_size:
             raise ValueError(f"Expected {expected_size} bytes, got {len(pixel_data)}")
@@ -62,9 +63,11 @@ def read_raw_without_metadata(filename, width, height, format='BGR'):
         numpy.ndarray: Image array
     """
     channels = 4 if 'A' in format else 3
-    
-    pixel_data = np.fromfile(filename, dtype=np.uint8)
     expected_size = width * height * channels
+    
+    with open(filename, 'rb') as f:
+        pixel_bytes = f.read(expected_size)
+        pixel_data = np.frombuffer(pixel_bytes, dtype=np.uint8)
     
     if len(pixel_data) != expected_size:
         raise ValueError(

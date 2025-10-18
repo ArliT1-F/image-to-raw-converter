@@ -36,14 +36,21 @@ def read_raw_opencv(filename, has_metadata=True, width=None, height=None, format
             
             # Read pixel data
             channels = 4 if 'A' in format else 3
-            pixel_data = np.fromfile(f, dtype=np.uint8)
+            expected_size = width * height * channels
+            pixel_bytes = f.read(expected_size)
+            pixel_data = np.frombuffer(pixel_bytes, dtype=np.uint8)
             image = pixel_data.reshape((height, width, channels))
     else:
         if width is None or height is None:
             raise ValueError("Width and height must be provided when has_metadata=False")
         
         channels = 4 if 'A' in format else 3
-        pixel_data = np.fromfile(filename, dtype=np.uint8)
+        expected_size = width * height * channels
+        
+        with open(filename, 'rb') as f:
+            pixel_bytes = f.read(expected_size)
+            pixel_data = np.frombuffer(pixel_bytes, dtype=np.uint8)
+        
         image = pixel_data.reshape((height, width, channels))
     
     # Convert to OpenCV BGR format
