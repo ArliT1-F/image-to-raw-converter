@@ -245,6 +245,83 @@
             font-size: 14px;
             width: 100%;
         }
+
+        .batch-list {
+            background: #f8f9ff;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .batch-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+            margin-bottom: 8px;
+        }
+
+        .batch-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .batch-item-name {
+            font-size: 14px;
+            color: #333;
+            flex: 1;
+            margin-right: 10px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .batch-item-status {
+            font-size: 12px;
+            color: #666;
+            margin-right: 10px;
+        }
+
+        .batch-item-status.completed {
+            color: #4caf50;
+        }
+
+        .batch-item-remove {
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .batch-item-remove:hover {
+            background: #d32f2f;
+        }
+
+        .scale-input {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 10px;
+            margin-top: 10px;
+            align-items: center;
+        }
+
+        .scale-input input {
+            padding: 8px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .scale-input span {
+            color: #666;
+            font-size: 14px;
+        }
     </style>
 </head>
 
@@ -258,8 +335,10 @@
             <div class="upload-icon">📁</div>
             <h3>Click to upload or drag and drop</h3>
             <p>Supports: PNG, JPEG, WebP, BMP, GIF, and more</p>
-            <input type="file" id="fileInput" accept="image/*">
+            <input type="file" id="fileInput" accept="image/*" multiple>
         </div>
+
+        <div class="batch-list" id="batchList" style="display: none;"></div>
 
         <div class="progress-bar" id="progressBar">
             <div class="progress-fill" id="progressFill"></div>
@@ -324,10 +403,21 @@
                         </select>
                     </div>
                 </div>
+                <div class="option-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="resizeEnabled">
+                        Image scaling (resize by percentage)
+                    </label>
+                    <div class="scale-input" id="scaleInput" style="display: none;">
+                        <input type="number" id="scalePercent" placeholder="Scale %" min="1" max="1000" value="100">
+                        <span>%</span>
+                    </div>
+                </div>
             </div>
 
             <div class="button-group">
                 <button class="btn" id="downloadBtn">📥 Download Raw Data</button>
+                <button class="btn" id="downloadAllBtn" style="display: none;">📥 Download All</button>
                 <button class="btn" id="newImageBtn">🔄 Convert Another Image</button>
             </div>
         </div>
@@ -355,10 +445,16 @@
         const customWidth = document.getElementById('customWidth');
         const customHeight = document.getElementById('customHeight');
         const resizeMode = document.getElementById('resizeMode');
+        const resizeEnabled = document.getElementById('resizeEnabled');
+        const scaleInput = document.getElementById('scaleInput');
+        const scalePercent = document.getElementById('scalePercent');
+        const batchList = document.getElementById('batchList');
+        const downloadAllBtn = document.getElementById('downloadAllBtn');
 
         let currentImageData = null;
         let currentFileName = '';
         let originalImage = null;
+        let batchImages = [];
 
         // Upload area click
         uploadArea.addEventListener('click', () => {
@@ -367,9 +463,13 @@
 
         // File input change
         fileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                handleFile(file);
+            const files = Array.from(e.target.files);
+            if (files.length > 0) {
+                if (files.length === 1) {
+                    handleFile(files[0]);
+                } else {
+                    handleBatchFiles(files);
+                }
             }
         });
 
@@ -386,9 +486,13 @@
         uploadArea.addEventListener('drop', (e) => {
             e.preventDefault();
             uploadArea.classList.remove('dragover');
-            const file = e.dataTransfer.files[0];
-            if (file && file.type.startsWith('image/')) {
-                handleFile(file);
+            const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+            if (files.length > 0) {
+                if (files.length === 1) {
+                    handleFile(files[0]);
+                } else {
+                    handleBatchFiles(files);
+                }
             }
         });
 
@@ -428,6 +532,146 @@
                 processImage(originalImage, null);
             }
         });
+
+        // Resize/scale toggle
+        resizeEnabled.addEventListener('change', () => {
+            if (resizeEnabled.checked) {
+                scaleInput.style.display = 'grid';
+            } else {
+                scaleInput.style.display = 'none';
+                if (originalImage) {
+                    processImage(originalImage, null);
+                }
+            }
+        });
+
+        scalePercent.addEventListener('input', () => {
+            if (originalImage && resizeEnabled.checked) {
+                processImage(originalImage, null);
+            }
+        });
+
+        // Batch processing functions
+        function handleBatchFiles(files) {
+            batchImages = [];
+            batchList.innerHTML = '';
+            batchList.style.display = 'block';
+            downloadAllBtn.style.display = 'inline-block';
+            previewSection.classList.remove('active');
+
+            files.forEach((file, index) => {
+                if (!file.type.startsWith('image/')) return;
+
+                const batchItem = {
+                    file: file,
+                    id: Date.now() + index,
+                    name: file.name,
+                    status: 'pending',
+                    imageData: null
+                };
+
+                batchImages.push(batchItem);
+                addBatchItemToUI(batchItem);
+                processBatchImage(batchItem);
+            });
+        }
+
+        function addBatchItemToUI(item) {
+            const div = document.createElement('div');
+            div.className = 'batch-item';
+            div.id = 'batch-' + item.id;
+            div.innerHTML = `
+                <span class="batch-item-name">${item.name}</span>
+                <span class="batch-item-status" id="status-${item.id}">⏳ Pending</span>
+                <button class="batch-item-remove" onclick="removeBatchItem(${item.id})">✕</button>
+            `;
+            batchList.appendChild(div);
+        }
+
+        function updateBatchItemStatus(id, status, statusText) {
+            const statusEl = document.getElementById('status-' + id);
+            if (statusEl) {
+                statusEl.textContent = statusText;
+                if (status === 'completed') {
+                    statusEl.classList.add('completed');
+                }
+            }
+        }
+
+        window.removeBatchItem = function(id) {
+            const index = batchImages.findIndex(item => item.id === id);
+            if (index !== -1) {
+                batchImages.splice(index, 1);
+                const el = document.getElementById('batch-' + id);
+                if (el) el.remove();
+
+                if (batchImages.length === 0) {
+                    batchList.style.display = 'none';
+                    downloadAllBtn.style.display = 'none';
+                }
+            }
+        };
+
+        async function processBatchImage(item) {
+            updateBatchItemStatus(item.id, 'processing', '⏳ Processing...');
+
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+
+                        let targetWidth = img.width;
+                        let targetHeight = img.height;
+
+                        // Apply scaling
+                        if (resizeEnabled.checked && scalePercent.value) {
+                            const scale = parseFloat(scalePercent.value) / 100;
+                            targetWidth = Math.round(img.width * scale);
+                            targetHeight = Math.round(img.height * scale);
+                        }
+
+                        // Apply custom dimensions
+                        if (customDimensions.checked && customWidth.value && customHeight.value) {
+                            const newWidth = parseInt(customWidth.value);
+                            const newHeight = parseInt(customHeight.value);
+                            const mode = resizeMode.value;
+
+                            if (mode === 'stretch') {
+                                targetWidth = newWidth;
+                                targetHeight = newHeight;
+                            } else if (mode === 'fit') {
+                                const ratio = Math.min(newWidth / targetWidth, newHeight / targetHeight);
+                                targetWidth = Math.round(targetWidth * ratio);
+                                targetHeight = Math.round(targetHeight * ratio);
+                            } else if (mode === 'fill') {
+                                const ratio = Math.max(newWidth / targetWidth, newHeight / targetHeight);
+                                const scaledWidth = Math.round(targetWidth * ratio);
+                                const scaledHeight = Math.round(targetHeight * ratio);
+                                canvas.width = newWidth;
+                                canvas.height = newHeight;
+                                ctx.drawImage(img, (newWidth - scaledWidth) / 2, (newHeight - scaledHeight) / 2, scaledWidth, scaledHeight);
+                                item.imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                                updateBatchItemStatus(item.id, 'completed', '✓ Ready');
+                                resolve();
+                                return;
+                            }
+                        }
+
+                        canvas.width = targetWidth;
+                        canvas.height = targetHeight;
+                        ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+                        item.imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                        updateBatchItemStatus(item.id, 'completed', '✓ Ready');
+                        resolve();
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(item.file);
+            });
+        }
 
         // Progress functions
         function showProgress(text = 'Processing...') {
@@ -495,6 +739,13 @@
 
             let targetWidth = img.width;
             let targetHeight = img.height;
+
+            // Apply scaling first
+            if (resizeEnabled.checked && scalePercent.value) {
+                const scale = parseFloat(scalePercent.value) / 100;
+                targetWidth = Math.round(img.width * scale);
+                targetHeight = Math.round(img.height * scale);
+            }
 
             // Apply custom dimensions if enabled
             if (customDimensions.checked && customWidth.value && customHeight.value) {
@@ -689,12 +940,69 @@
             }, 100);
         });
 
+        // Download all batch button
+        downloadAllBtn.addEventListener('click', async () => {
+            showProgress('Converting batch images...');
+            
+            const format = channelOrder.value;
+            const totalImages = batchImages.length;
+            
+            for (let i = 0; i < batchImages.length; i++) {
+                const item = batchImages[i];
+                if (!item.imageData) continue;
+                
+                updateProgress(((i + 1) / totalImages) * 100);
+                updateBatchItemStatus(item.id, 'downloading', '⬇️ Downloading...');
+                
+                const pixelData = convertPixelData(item.imageData, format);
+                let finalData;
+                
+                if (includeMetadata.checked) {
+                    const header = new Uint8Array(12);
+                    const headerView = new DataView(header.buffer);
+                    headerView.setUint32(0, item.imageData.width, true);
+                    headerView.setUint32(4, item.imageData.height, true);
+                    const formatCodes = { 'bgr': 3, 'rgb': 4, 'bgra': 1, 'rgba': 2 };
+                    headerView.setUint32(8, formatCodes[format], true);
+                    finalData = new Uint8Array(header.length + pixelData.length);
+                    finalData.set(header, 0);
+                    finalData.set(pixelData, header.length);
+                } else {
+                    finalData = pixelData;
+                }
+                
+                const blob = new Blob([finalData], { type: 'application/octet-stream' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const lastDot = item.name.lastIndexOf('.');
+                const baseName = lastDot > 0 ? item.name.slice(0, lastDot) : item.name;
+                a.download = `${baseName}_${format}${includeMetadata.checked ? '_meta' : ''}.raw`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                updateBatchItemStatus(item.id, 'completed', '✓ Downloaded');
+                
+                // Small delay between downloads
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+            
+            hideProgress();
+        });
+
         // New image button
         newImageBtn.addEventListener('click', () => {
             fileInput.value = '';
             previewSection.classList.remove('active');
+            batchList.style.display = 'none';
+            downloadAllBtn.style.display = 'none';
             currentImageData = null;
             currentFileName = '';
+            originalImage = null;
+            batchImages = [];
+            batchList.innerHTML = '';
         });
 
         // Format bytes

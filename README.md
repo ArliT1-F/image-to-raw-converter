@@ -12,6 +12,10 @@ A lightweight, client-side web application that converts images into raw pixel d
 - ✅ **Universal Image Support** - PNG, JPEG, WebP, BMP, GIF, and more
 - ✅ **Multiple Pixel Formats** - BGR, RGB, BGRA, RGBA
 - ✅ **Optional Metadata Headers** - Include width, height, and format information
+- ✅ **Batch Conversion** - Convert multiple images at once
+- ✅ **Image Resizing** - Scale images by percentage before conversion
+- ✅ **Custom Dimensions** - Crop or pad to specific sizes with multiple modes
+- ✅ **Progress Indicator** - Real-time progress tracking for all operations
 - ✅ **Drag & Drop Interface** - Simple and intuitive UI
 - ✅ **Live Preview** - See your image and conversion details instantly
 - ✅ **Zero Dependencies** - Pure HTML, CSS, and JavaScript
@@ -31,25 +35,38 @@ A lightweight, client-side web application that converts images into raw pixel d
 
 1. **Image Loading**: When you upload an image, the browser's native image decoder handles format conversion (JPEG, PNG, WebP, etc.)
 
-2. **Canvas Rendering**: The image is drawn onto an HTML5 Canvas element at its original dimensions
+2. **Image Processing** (Optional):
+   - **Scaling**: If enabled, image is resized by percentage (e.g., 50% = half size)
+   - **Custom Dimensions**: Image is resized to specific dimensions with chosen mode:
+     - *Stretch*: Resizes to exact dimensions
+     - *Fit*: Maintains aspect ratio, fits within bounds
+     - *Fill*: Maintains aspect ratio, crops to fill bounds
 
-3. **Pixel Extraction**: Using `getImageData()`, the canvas provides RGBA pixel data in a flat array:
+3. **Canvas Rendering**: The image is drawn onto an HTML5 Canvas element at target dimensions
+
+4. **Pixel Extraction**: Using `getImageData()`, the canvas provides RGBA pixel data in a flat array:
     `[R, G, B, A, R, G, B, A, R, G, B, A, ...]`
 
+5. **Channel Reordering**: Pixels are reordered based on your selected format:
+   - **BGR**: `[B, G, R, B, G, R, ...]`
+   - **RGB**: `[R, G, B, R, G, B, ...]`
+   - **BGRA**: `[B, G, R, A, B, G, R, A, ...]`
+   - **RGBA**: `[R, G, B, A, R, G, B, A, ...]`
 
-4. **Channel Reordering**: Pixels are reordered based on your selected format:
-- **BGR**: `[B, G, R, B, G, R, ...]`
-- **RGB**: `[R, G, B, R, G, B, ...]`
-- **BGRA**: `[B, G, R, A, B, G, R, A, ...]`
-- **RGBA**: `[R, G, B, A, R, G, B, A, ...]`
+6. **Metadata (Optional)**: A 12-byte header is prepended:
+   - ***Bytes 0-3***: Width (uint32, little-endian)
+   - ***Bytes 4-7***: Height (uint32, little-endian)
+   - ***Bytes 8-11***: Format Code (uint32, little-endian)
+   - ***1 = BGRA, 2 = RGBA, 3 = BGR, 4 = RGB***
 
-5. **Metadata (Optional)**: A 12-byte header is prepended:
-- ***Bytes 0-3***: Width (uint32, little-endian)
-- ***Bytes 4-7***: Height (uint32, little-endian)
-- ***Bytes 8-11***: Format Code (uint32, little-endian)
-- ***1 = BGRA, 2 = RGBA, 3 = BGR, 4 = RGB***
+7. **File Export**: The raw binary data is downloaded as a `.raw` file
 
-6. **File Export**: The raw binary data is downloaded as a `.raw` file
+### Batch Processing
+When multiple images are uploaded:
+- All images are processed in parallel
+- Each image gets the same settings (format, scaling, dimensions)
+- Progress is tracked per image
+- Downloads occur sequentially with 200ms delays to prevent browser blocking
 
 ### Data Structure Example
 For a 2x2 pixel image in BGR format without metadata:
@@ -106,21 +123,75 @@ Pixel (1,1): Blue=160, Green=80, Red=40
 
 
 ## 🚀 Usage Guide
-### Basic Conversion
+
+### Basic Conversion (Single Image)
 1. **Upload an Image**
-- Click the upload area or drag & drop image file
-- Supported formats: PNG, JPEG, WebP, BMP, GIF, SVG, etc.
+   - Click the upload area or drag & drop a single image file
+   - Supported formats: PNG, JPEG, WebP, BMP, GIF, SVG, etc.
+
 2. **Select Format**
-- ***BGR***: Standard for OpenCV (3 bytes/pixel)
-- ***RGB***: Standard for most libraries (3 bytes/pixel)
-- ***BGRA***: BGR with alpha channel (4 bytes/pixel)
-- ***RGBA***: RGB with alpha channel (4 bytes/pixel)
+   - ***BGR***: Standard for OpenCV (3 bytes/pixel)
+   - ***RGB***: Standard for most libraries (3 bytes/pixel)
+   - ***BGRA***: BGR with alpha channel (4 bytes/pixel)
+   - ***RGBA***: RGB with alpha channel (4 bytes/pixel)
+
 3. **Choose Options**
-- Check "Include metadata header" if you need width/height/format info
-- Unchecked = pure pixel data only
+   - Check "Include metadata header" if you need width/height/format info
+   - Unchecked = pure pixel data only
+
 4. **Download**
-- Click "Download Raw Data"
-- File saved as ```filename_format.raw``` or ```filename_format_meta.raw```
+   - Click "Download Raw Data"
+   - File saved as `filename_format.raw` or `filename_format_meta.raw`
+
+### Batch Conversion (Multiple Images)
+1. **Upload Multiple Images**
+   - Select multiple files at once OR drag & drop multiple images
+   - All images will be listed in the batch processing panel
+
+2. **Configure Settings**
+   - Select channel order (BGR, RGB, BGRA, RGBA)
+   - Enable/disable metadata headers
+   - Apply same settings to all images
+
+3. **Process & Download**
+   - Images are processed automatically when uploaded
+   - Click "Download All" to download all converted images
+   - Each image downloads with a 200ms delay
+   - Remove individual images from batch with the ✕ button
+
+### Image Resizing (Scale by Percentage)
+1. **Enable Scaling**
+   - Check "Image scaling (resize by percentage)"
+   - Enter percentage value (e.g., 50 = half size, 200 = double size)
+
+2. **How It Works**
+   - Scales both width and height by the same percentage
+   - Maintains aspect ratio
+   - Applied before custom dimensions
+   - Works with both single and batch conversions
+
+### Custom Dimensions
+1. **Enable Custom Dimensions**
+   - Check "Custom dimensions (resize image)"
+   - Enter target width and height in pixels
+
+2. **Choose Resize Mode**
+   - **Stretch**: Stretches image to exact dimensions (may distort)
+   - **Fit**: Maintains aspect ratio, fits within bounds (may have empty space)
+   - **Fill**: Maintains aspect ratio, crops to fill bounds (may crop edges)
+
+3. **Combined with Scaling**
+   - Scaling is applied first, then custom dimensions
+   - Example: 50% scale + 800x600 fit = scales to 50%, then fits in 800x600
+
+### Progress Indicator
+The progress bar shows real-time status:
+- **Loading image...** (0-30%)
+- **Processing image...** (60-90%)
+- **Converting pixel data...** (30-60%)
+- **Downloading...** (80-100%)
+
+For batch operations, progress shows per-image completion.
 
 ## Reading the Raw Data
 **Python with NumPy**:
@@ -228,9 +299,9 @@ Format Codes:
 ```
 
 ## 🗺️ Roadmap & To-Do List
-### High Priority
-- [ ] **Batch Conversion** - Convert multiple images at once
-- [ ] **Image Resizing** - Scale images before conversion
+### High Priority ✅ COMPLETED
+- [x] **Batch Conversion** - Convert multiple images at once ✅
+- [x] **Image Resizing** - Scale images before conversion ✅
 - [x] **Custom Dimensions** - Crop or pad to specific sizes ✅
 - [x] **Progress Indicator** - Show progress for large images ✅
 
