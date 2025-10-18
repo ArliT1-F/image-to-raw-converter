@@ -231,8 +231,8 @@ Format Codes:
 ### High Priority
 - [ ] **Batch Conversion** - Convert multiple images at once
 - [ ] **Image Resizing** - Scale images before conversion
-- [ ] **Custom Dimensions** - Crop or pad to specific sizes
-- [ ] **Progress Indicator** - Show progress for large images
+- [x] **Custom Dimensions** - Crop or pad to specific sizes ✅
+- [x] **Progress Indicator** - Show progress for large images ✅
 
 ### Medium Priority
 - [ ] **Additional Export Formats**
