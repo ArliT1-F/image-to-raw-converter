@@ -10,4 +10,5 @@ Thumbs.db
 
 # Test files
 *.raw
-test_images/
+#test_images/
+./__pycache__/
