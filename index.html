@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Image to Raw BGR Converter</title>
+    <title>Image to Raw Converter</title>
     <style>
         * {
             margin: 0;
@@ -183,8 +183,8 @@
 </head>
 <body>
     <div class="container">
-        <h1>🖼️ Image to Raw BGR Converter</h1>
-        <p class="subtitle">Convert PNG, JPEG, WebP, BMP, and other image formats to raw BGR pixel data</p>
+        <h1>🖼️ Image to Raw Converter</h1>
+        <p class="subtitle">Convert PNG, JPEG, WebP, BMP, and other image formats to raw pixel data (BGR, RGB, BGRA, RGBA)</p>
 
         <div class="upload-area" id="uploadArea">
             <div class="upload-icon">📁</div>
@@ -212,7 +212,7 @@
                     <div class="info-value" id="fileSize">-</div>
                 </div>
                 <div class="info-card">
-                    <div class="info-label">BGR Data Size</div>
+                    <div class="info-label">Raw Data Size</div>
                     <div class="info-value" id="bgrSize">-</div>
                 </div>
             </div>
@@ -294,7 +294,22 @@
 
         // Handle file
         function handleFile(file) {
-            currentFileName = file.name.split('.')[0];
+            // Validate file type
+            if (!file.type.startsWith('image/')) {
+                alert('Please select an image file.');
+                return;
+            }
+            
+            // Warn about large files (>100MB)
+            if (file.size > 100 * 1024 * 1024) {
+                if (!confirm('This image is large and may be slow to process. Continue?')) {
+                    return;
+                }
+            }
+            
+            // Fix filename parsing to handle multiple dots
+            const lastDot = file.name.lastIndexOf('.');
+            currentFileName = lastDot > 0 ? file.name.slice(0, lastDot) : file.name;
             const reader = new FileReader();
 
             reader.onload = (e) => {
