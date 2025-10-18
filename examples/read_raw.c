@@ -46,6 +46,19 @@ RawImage* read_raw_with_metadata(const char* filename) {
         return NULL;
     }
     
+    // Validate header
+    if (header.width == 0 || header.height == 0) {
+        fprintf(stderr, "❌ Invalid dimensions: %ux%u\n", header.width, header.height);
+        fclose(file);
+        return NULL;
+    }
+    
+    if (header.format < 1 || header.format > 4) {
+        fprintf(stderr, "❌ Invalid format code: %u\n", header.format);
+        fclose(file);
+        return NULL;
+    }
+    
     // Determine format
     const char* format_names[] = {"", "BGRA", "RGBA", "BGR", "RGB"};
     uint32_t channels = (header.format == 1 || header.format == 2) ? 4 : 3;
@@ -53,6 +66,13 @@ RawImage* read_raw_with_metadata(const char* filename) {
     printf("📐 Dimensions: %ux%u\n", header.width, header.height);
     printf("🎨 Format: %s\n", format_names[header.format]);
     printf("📊 Channels: %u\n", channels);
+    
+    // Check for overflow
+    if ((uint64_t)header.width * header.height > SIZE_MAX / channels) {
+        fprintf(stderr, "❌ Image dimensions too large\n");
+        fclose(file);
+        return NULL;
+    }
     
     // Allocate memory for pixel data
     size_t data_size = header.width * header.height * channels;
@@ -81,6 +101,7 @@ RawImage* read_raw_with_metadata(const char* filename) {
     img->height = header.height;
     img->channels = channels;
     strncpy(img->format, format_names[header.format], sizeof(img->format));
+    img->format[sizeof(img->format) - 1] = '\0';  // Ensure null-termination
     
     printf("✅ Successfully loaded image!\n");
     
@@ -122,6 +143,7 @@ RawImage* read_raw_without_metadata(const char* filename,
     img->height = height;
     img->channels = channels;
     strncpy(img->format, format, sizeof(img->format));
+    img->format[sizeof(img->format) - 1] = '\0';  // Ensure null-termination
     
     printf("✅ Successfully loaded %ux%u image in %s format\n", width, height, format);
     
