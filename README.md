@@ -80,15 +80,25 @@ Pixel (1,1): Blue=160, Green=80, Red=40
    cd image-to-raw-converter
    ```
 2. Serve using any static file server:
-    <br>
-    <br>
-    **Python 3**:<br>```bash python -m http.server 8000```<br><br>
-    **Node.js (with http server)**:<br>```bash npx http-server -p 8000```<br><br>
-    **PHP**:<br>```bash php -S localhost:8000```<br><br>
+   
+   **Python 3**:
+   ```bash
+   python -m http.server 8000
+   ```
+   
+   **Node.js (with http-server)**:
+   ```bash
+   npx http-server -p 8000
+   ```
+   
+   **PHP**:
+   ```bash
+   php -S localhost:8000
+   ```
 
 3. Open `http://localhost:8000` in your browser
 
-### Option 3: Github Pages
+### Option 3: GitHub Pages
 1. Fork this repository
 2. Go to Settings → Pages
 3. Select main branch as source
@@ -101,8 +111,8 @@ Pixel (1,1): Blue=160, Green=80, Red=40
 - Click the upload area or drag & drop image file
 - Supported formats: PNG, JPEG, WebP, BMP, GIF, SVG, etc.
 2. **Select Format**
-- ***BGR***: Standart for OpenCV (3 bytes/pixel)
-- ***RGB***: Standart for most libraries (3 bytes/pixel)
+- ***BGR***: Standard for OpenCV (3 bytes/pixel)
+- ***RGB***: Standard for most libraries (3 bytes/pixel)
 - ***BGRA***: BGR with alpha channel (4 bytes/pixel)
 - ***RGBA***: RGB with alpha channel (4 bytes/pixel)
 3. **Choose Options**
@@ -113,12 +123,12 @@ Pixel (1,1): Blue=160, Green=80, Red=40
 - File saved as ```filename_format.raw``` or ```filename_format_meta.raw```
 
 ## Reading the Raw Data
-**Python with Numpy**:
+**Python with NumPy**:
 ```python
-import numpy
+import numpy as np
 
 # Without metadata
-width, height = 1920, 1080 # You need to know dimensions
+width, height = 1920, 1080  # You need to know dimensions
 bgr_data = np.fromfile('image_bgr.raw', dtype=np.uint8)
 bgr_image = bgr_data.reshape((height, width, 3))
 
@@ -250,7 +260,7 @@ Format Codes:
 <br>
 <br>
 
-### Commnity Suggestions
+### Community Suggestions
 Have an idea? [Open an issue](https://github.com/ArliT1-F/image-to-raw-converter/issues) or submit a pull request!
 
 ### Contributing
@@ -295,15 +305,15 @@ SOFTWARE.
 - **Issues**: [GitHub Issues](https://github.com/ArliT1-F/image-to-raw-converter/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/ArliT1-F/image-to-raw-converter/discussions)
 
-## Project Structure**
-This is how the project directory should look:
+## Project Structure
 ```text
 image-to-raw-converter/
-├── index.html (the main web app)
-├── README.md (the documentation above)
-├── LICENSE (MIT License text)
-└── examples/
-├── read_raw.py
-├── read_raw.cpp
-└── opencv_example.py
+├── index.html           # Main web application
+├── README.md            # Documentation
+├── LICENCE              # MIT License text
+└── examples/            # Example readers
+    ├── read_raw.py      # Python reader
+    ├── read_raw.c       # C reader
+    ├── read_raw.cpp     # C++ reader with OpenCV
+    └── opencv_example.py # OpenCV Python example
 ```
